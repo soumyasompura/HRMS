@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Enterprise HRMS Portal</title>
+  <title>HRMS Enterprise Portal</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -12,28 +12,41 @@
   <sidebar>
     <h2>WorkPortal</h2>
     <button class="nav-btn active" onclick="navigate('dashboard')">Dashboard</button>
-    <button class="nav-btn" onclick="navigate('todo')">To-Do List</button>
+    <button class="nav-btn" onclick="navigate('attendance')">Attendance Log</button>
+    <button class="nav-btn" onclick="navigate('work_updates')">Work Updates</button>
+    <button class="nav-btn" onclick="navigate('leave_requests')">Leave Requests</button>
     <button class="nav-btn" onclick="navigate('payroll')">Payroll</button>
-    <button class="nav-btn" onclick="navigate('leave')">Leave Workflow</button>
     <button class="nav-btn" onclick="navigate('announcements')">Announcements</button>
-    <button class="nav-btn hr-only" onclick="navigate('employees')">Employee Directory</button>
+    <button class="nav-btn hr-only" onclick="navigate('users')">Users Directory</button>
+    <button class="nav-btn hr-only" onclick="navigate('audit_logs')">Audit Logs</button>
   </sidebar>
 
-  <!-- Main View Area -->
+  <!-- Main Content Area -->
   <main>
-    <!-- Top Header & Role Switcher -->
+    <!-- Top Bar -->
     <div class="top-bar">
       <div>
         <span style="color: #64748b; font-size: 0.9rem;">Logged in as:</span>
-        <strong id="userLabel">John Doe (Employee)</strong>
+        <strong id="userLabel">John Doe (employee)</strong>
       </div>
-      <div>
-        <label for="roleSwitch" style="font-size: 0.9rem; margin-right: 8px;">Switch Role Preview:</label>
-        <select id="roleSwitch" class="role-selector" onchange="toggleRole(this.value)">
-          <option value="employee">Employee</option>
-          <option value="admin">HR / Admin</option>
-        </select>
+      <div style="display: flex; gap: 16px; align-items: center;">
+        <div id="notifBadge" class="notif-bell" onclick="toggleNotifDropdown()">
+          🔔 <span id="notifCount" class="badge-count">0</span>
+        </div>
+        <div>
+          <label for="roleSwitch" style="font-size: 0.9rem; margin-right: 8px;">Switch Role Preview:</label>
+          <select id="roleSwitch" class="role-selector" onchange="toggleRole(this.value)">
+            <option value="employee">Employee</option>
+            <option value="admin">HR / Admin</option>
+          </select>
+        </div>
       </div>
+    </div>
+
+    <!-- Notifications Dropdown -->
+    <div id="notifDropdown" class="notif-dropdown" style="display: none;">
+      <h4>Notifications</h4>
+      <div id="notifContainer"></div>
     </div>
 
     <!-- 1. DASHBOARD VIEW -->
@@ -42,166 +55,250 @@
         <h3>Dashboard Overview</h3>
         <div class="grid">
           <div class="stat-box">
-            <h4>Pending Tasks</h4>
-            <p id="statTasks" style="font-size: 1.5rem; font-weight: bold; margin-top: 8px;">0 Tasks</p>
+            <h4>Attendance Today</h4>
+            <p id="statAttendance" style="font-size: 1.2rem; font-weight: bold; margin-top: 8px;">Not Checked In</p>
           </div>
           <div class="stat-box">
-            <h4>Leave Balance</h4>
-            <p id="statLeave" style="font-size: 1.5rem; font-weight: bold; margin-top: 8px;">14 Days</p>
+            <h4>Paid Leave Balance</h4>
+            <p id="statLeave" style="font-size: 1.2rem; font-weight: bold; margin-top: 8px;">0 Days</p>
+          </div>
+          <div class="stat-box">
+            <h4>Active Projects</h4>
+            <p id="statWork" style="font-size: 1.2rem; font-weight: bold; margin-top: 8px;">0 Active</p>
           </div>
           <div class="stat-box hr-only">
-            <h4>Total Staff Analytics</h4>
-            <p id="statStaff" style="font-size: 1.5rem; font-weight: bold; margin-top: 8px;">0 Active</p>
+            <h4>Total Employees</h4>
+            <p id="statUsers" style="font-size: 1.2rem; font-weight: bold; margin-top: 8px;">0 Active</p>
           </div>
         </div>
       </div>
     </section>
 
-    <!-- 2. TO-DO LIST VIEW -->
-    <section id="view-todo" class="view-section" style="display:none;">
-      <div class="card">
-        <h3>To-Do List</h3>
-        <div class="input-inline">
-          <input type="text" id="todoInput" placeholder="Add a new task...">
-          <select id="todoAssignee" class="hr-only">
-            <option value="John Doe">Assign to: John Doe</option>
-            <option value="Jane Smith">Assign to: Jane Smith</option>
-          </select>
-          <button class="btn-primary" onclick="addTodo()">Add Task</button>
-        </div>
-        <ul id="todoList" class="todo-list">
-          <!-- Dynamic Task Items -->
-        </ul>
-      </div>
-    </section>
-
-    <!-- 3. PAYROLL VIEW -->
-    <section id="view-payroll" class="view-section" style="display:none;">
+    <!-- 2. ATTENDANCE TABLE VIEW -->
+    <section id="view-attendance" class="view-section" style="display:none;">
       <div class="card">
         <div class="card-header">
-          <h3 class="emp-only">My Payroll Statements</h3>
-          <h3 class="hr-only">Manage All Employee Payrolls</h3>
-          <button class="btn-primary hr-only" onclick="openPayrollModal()">+ Generate Payslip</button>
+          <h3>Attendance Records</h3>
+          <div>
+            <button id="btnCheckIn" class="btn-primary" onclick="handleCheckIn()">Check In</button>
+            <button id="btnCheckOut" class="btn-danger" onclick="handleCheckOut()" style="display:none;">Check Out</button>
+          </div>
         </div>
         <table>
           <thead>
             <tr>
-              <th>Employee</th>
-              <th>Month</th>
-              <th>Net Pay</th>
+              <th>Employee ID</th>
+              <th>Date</th>
+              <th>Check In</th>
+              <th>Check Out</th>
+              <th>Total Hours</th>
               <th>Status</th>
-              <th>Action</th>
             </tr>
           </thead>
-          <tbody id="payrollTableBody">
-            <!-- Dynamic Payroll Rows -->
-          </tbody>
+          <tbody id="attendanceTableBody"></tbody>
         </table>
       </div>
     </section>
 
-    <!-- 4. LEAVE WORKFLOW VIEW -->
-    <section id="view-leave" class="view-section" style="display:none;">
+    <!-- 3. WORK UPDATES TABLE VIEW -->
+    <section id="view-work_updates" class="view-section" style="display:none;">
+      <div class="card">
+        <div class="card-header">
+          <h3>Work Updates</h3>
+          <button class="btn-primary" onclick="openModal('workModal')">+ Log Work</button>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Project</th>
+              <th>Title</th>
+              <th>Date</th>
+              <th>Progress</th>
+              <th>Status</th>
+              <th>Remarks</th>
+            </tr>
+          </thead>
+          <tbody id="workTableBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 4. LEAVE REQUESTS TABLE VIEW -->
+    <section id="view-leave_requests" class="view-section" style="display:none;">
       <div class="card">
         <div class="card-header">
           <h3>Leave Requests</h3>
-          <button class="btn-primary emp-only" onclick="openLeaveModal()">+ Apply For Leave</button>
+          <button class="btn-primary" onclick="openModal('leaveModal')">+ Apply Leave</button>
         </div>
         <table>
           <thead>
             <tr>
-              <th>Employee</th>
+              <th>Emp ID</th>
               <th>Type</th>
-              <th>Dates</th>
+              <th>Start Date</th>
+              <th>End Date</th>
               <th>Reason</th>
               <th>Status</th>
-              <th class="hr-only">HR Actions</th>
+              <th>HR Comment</th>
+              <th class="hr-only">Actions</th>
             </tr>
           </thead>
-          <tbody id="leaveTableBody">
-            <!-- Dynamic Leave Rows -->
-          </tbody>
+          <tbody id="leaveTableBody"></tbody>
         </table>
       </div>
     </section>
 
-    <!-- 5. ANNOUNCEMENTS VIEW -->
-    <section id="view-announcements" class="view-section" style="display:none;">
+    <!-- 5. PAYROLL TABLE VIEW -->
+    <section id="view-payroll" class="view-section" style="display:none;">
       <div class="card">
         <div class="card-header">
-          <h3>Company Announcements</h3>
-          <button class="btn-primary hr-only" onclick="openAnnouncementModal()">+ Create Announcement</button>
-        </div>
-        <div id="announcementContainer" class="announcement-list">
-          <!-- Dynamic Announcements -->
-        </div>
-      </div>
-    </section>
-
-    <!-- 6. EMPLOYEE MANAGEMENT VIEW (HR ONLY) -->
-    <section id="view-employees" class="view-section hr-only" style="display:none;">
-      <div class="card">
-        <div class="card-header">
-          <h3>Employee Directory</h3>
-          <button class="btn-primary" onclick="openEmployeeModal()">+ Add New Employee</button>
-        </div>
-        <div class="filter-bar">
-          <input type="text" id="empSearch" placeholder="Search employee..." oninput="filterEmployees()">
-          <select id="empDeptFilter" onchange="filterEmployees()">
-            <option value="">All Departments</option>
-            <option value="Engineering">Engineering</option>
-            <option value="Human Resources">Human Resources</option>
-            <option value="Finance">Finance</option>
-          </select>
+          <h3>Payroll History</h3>
+          <button class="btn-primary hr-only" onclick="openModal('payrollModal')">+ Create Payslip</button>
         </div>
         <table>
           <thead>
             <tr>
-              <th>ID</th>
+              <th>Emp ID</th>
+              <th>Period</th>
+              <th>Basic</th>
+              <th>Allowances</th>
+              <th>Deductions</th>
+              <th>Net Salary</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="payrollTableBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 6. ANNOUNCEMENTS VIEW -->
+    <section id="view-announcements" class="view-section" style="display:none;">
+      <div class="card">
+        <div class="card-header">
+          <h3>Announcements</h3>
+          <button class="btn-primary hr-only" onclick="openModal('announcementModal')">+ Create Notice</button>
+        </div>
+        <div id="announcementContainer" class="announcement-list"></div>
+      </div>
+    </section>
+
+    <!-- 7. USERS DIRECTORY VIEW -->
+    <section id="view-users" class="view-section hr-only" style="display:none;">
+      <div class="card">
+        <div class="card-header">
+          <h3>Users Directory</h3>
+          <button class="btn-primary" onclick="openModal('userModal')">+ Add User</button>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Emp ID</th>
               <th>Name</th>
+              <th>Email</th>
+              <th>Role</th>
               <th>Department</th>
               <th>Designation</th>
               <th>Status</th>
-              <th>Actions</th>
             </tr>
           </thead>
-          <tbody id="employeeTableBody">
-            <!-- Dynamic Employee Rows -->
-          </tbody>
+          <tbody id="usersTableBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 8. AUDIT LOGS VIEW -->
+    <section id="view-audit_logs" class="view-section hr-only" style="display:none;">
+      <div class="card">
+        <h3>Audit Logs</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>User ID</th>
+              <th>Action</th>
+              <th>Target Type</th>
+              <th>Target ID</th>
+              <th>Description</th>
+              <th>Timestamp</th>
+            </tr>
+          </thead>
+          <tbody id="auditTableBody"></tbody>
         </table>
       </div>
     </section>
   </main>
 
-  <!-- MODAL: LEAVE REQUEST -->
+  <!-- MODALS -->
+  <!-- Work Modal -->
+  <div id="workModal" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Log Work Update</h3>
+        <span class="close-btn" onclick="closeModal('workModal')">&times;</span>
+      </div>
+      <form onsubmit="handleWorkSubmit(event)">
+        <div class="form-group">
+          <label>Project</label>
+          <input type="text" id="workProject" required placeholder="Project Alpha">
+        </div>
+        <div class="form-group">
+          <label>Work Title</label>
+          <input type="text" id="workTitle" required placeholder="UI Development">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Progress (%)</label>
+            <input type="number" id="workProgress" min="0" max="100" required placeholder="50">
+          </div>
+          <div class="form-group">
+            <label>Status</label>
+            <select id="workStatus">
+              <option value="In Progress">In Progress</option>
+              <option value="Completed">Completed</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Description</label>
+          <textarea id="workDescription" rows="2" placeholder="Task details..."></textarea>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn-cancel" onclick="closeModal('workModal')">Cancel</button>
+          <button type="submit" class="btn-primary">Submit Update</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Leave Request Modal -->
   <div id="leaveModal" class="modal-overlay">
     <div class="modal-content">
       <div class="modal-header">
-        <h3>Apply for Leave</h3>
+        <h3>Apply Leave</h3>
         <span class="close-btn" onclick="closeModal('leaveModal')">&times;</span>
       </div>
-      <form id="leaveForm" onsubmit="handleLeaveSubmit(event)">
+      <form onsubmit="handleLeaveSubmit(event)">
         <div class="form-group">
-          <label for="leaveType">Leave Type</label>
-          <select id="leaveType" required>
-            <option value="Annual Leave">Annual Leave</option>
-            <option value="Sick Leave">Sick Leave</option>
-            <option value="Casual Leave">Casual Leave</option>
+          <label>Leave Type</label>
+          <select id="leaveType">
+            <option value="paid">Paid Leave</option>
+            <option value="sick">Sick Leave</option>
+            <option value="unpaid">Unpaid Leave</option>
           </select>
         </div>
         <div class="form-row">
           <div class="form-group">
-            <label for="startDate">Start Date</label>
-            <input type="date" id="startDate" required>
+            <label>Start Date</label>
+            <input type="date" id="leaveStartDate" required>
           </div>
           <div class="form-group">
-            <label for="endDate">End Date</label>
-            <input type="date" id="endDate" required>
+            <label>End Date</label>
+            <input type="date" id="leaveEndDate" required>
           </div>
         </div>
         <div class="form-group">
-          <label for="leaveReason">Reason</label>
-          <textarea id="leaveReason" rows="3" placeholder="State reason..." required></textarea>
+          <label>Reason</label>
+          <textarea id="leaveReason" rows="2" required></textarea>
         </div>
         <div class="modal-actions">
           <button type="button" class="btn-cancel" onclick="closeModal('leaveModal')">Cancel</button>
@@ -211,21 +308,65 @@
     </div>
   </div>
 
-  <!-- MODAL: ANNOUNCEMENT -->
+  <!-- Payroll Modal -->
+  <div id="payrollModal" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Issue Payroll</h3>
+        <span class="close-btn" onclick="closeModal('payrollModal')">&times;</span>
+      </div>
+      <form onsubmit="handlePayrollSubmit(event)">
+        <div class="form-group">
+          <label>Employee ID</label>
+          <input type="text" id="payEmpId" required placeholder="EMP-001">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Month</label>
+            <input type="text" id="payMonth" required placeholder="October">
+          </div>
+          <div class="form-group">
+            <label>Year</label>
+            <input type="number" id="payYear" required value="2026">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Basic ($)</label>
+            <input type="number" id="payBasic" required placeholder="4000">
+          </div>
+          <div class="form-group">
+            <label>Allowances ($)</label>
+            <input type="number" id="payAllowances" value="0">
+          </div>
+          <div class="form-group">
+            <label>Deductions ($)</label>
+            <input type="number" id="payDeductions" value="0">
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn-cancel" onclick="closeModal('payrollModal')">Cancel</button>
+          <button type="submit" class="btn-primary">Generate</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Announcement Modal -->
   <div id="announcementModal" class="modal-overlay">
     <div class="modal-content">
       <div class="modal-header">
         <h3>New Announcement</h3>
         <span class="close-btn" onclick="closeModal('announcementModal')">&times;</span>
       </div>
-      <form id="announcementForm" onsubmit="handleAnnouncementSubmit(event)">
+      <form onsubmit="handleAnnouncementSubmit(event)">
         <div class="form-group">
-          <label for="ancTitle">Title</label>
-          <input type="text" id="ancTitle" placeholder="Notice Heading" required>
+          <label>Title</label>
+          <input type="text" id="ancTitle" required placeholder="Notice Heading">
         </div>
         <div class="form-group">
-          <label for="ancBody">Announcement Details</label>
-          <textarea id="ancBody" rows="4" placeholder="Write contents here..." required></textarea>
+          <label>Message</label>
+          <textarea id="ancMessage" rows="3" required></textarea>
         </div>
         <div class="modal-actions">
           <button type="button" class="btn-cancel" onclick="closeModal('announcementModal')">Cancel</button>
@@ -235,65 +376,50 @@
     </div>
   </div>
 
-  <!-- MODAL: ADD EMPLOYEE -->
-  <div id="employeeModal" class="modal-overlay">
+  <!-- User Modal -->
+  <div id="userModal" class="modal-overlay">
     <div class="modal-content">
       <div class="modal-header">
-        <h3>Add New Employee</h3>
-        <span class="close-btn" onclick="closeModal('employeeModal')">&times;</span>
+        <h3>Add User</h3>
+        <span class="close-btn" onclick="closeModal('userModal')">&times;</span>
       </div>
-      <form id="employeeForm" onsubmit="handleEmployeeSubmit(event)">
-        <div class="form-group">
-          <label for="empName">Full Name</label>
-          <input type="text" id="empName" placeholder="John Smith" required>
+      <form onsubmit="handleUserSubmit(event)">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Employee ID</label>
+            <input type="text" id="usrEmpId" required placeholder="EMP-003">
+          </div>
+          <div class="form-group">
+            <label>Full Name</label>
+            <input type="text" id="usrName" required placeholder="Jane Smith">
+          </div>
         </div>
         <div class="form-row">
           <div class="form-group">
-            <label for="empDept">Department</label>
-            <select id="empDept" required>
-              <option value="Engineering">Engineering</option>
-              <option value="Human Resources">Human Resources</option>
-              <option value="Finance">Finance</option>
+            <label>Email</label>
+            <input type="email" id="usrEmail" required placeholder="jane@company.com">
+          </div>
+          <div class="form-group">
+            <label>Role</label>
+            <select id="usrRole">
+              <option value="employee">Employee</option>
+              <option value="admin">Admin</option>
             </select>
           </div>
-          <div class="form-group">
-            <label for="empRole">Designation</label>
-            <input type="text" id="empRole" placeholder="Frontend Developer" required>
-          </div>
-        </div>
-        <div class="modal-actions">
-          <button type="button" class="btn-cancel" onclick="closeModal('employeeModal')">Cancel</button>
-          <button type="submit" class="btn-primary">Add Employee</button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <!-- MODAL: PAYROLL GENERATOR -->
-  <div id="payrollModal" class="modal-overlay">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h3>Generate Payslip</h3>
-        <span class="close-btn" onclick="closeModal('payrollModal')">&times;</span>
-      </div>
-      <form id="payrollForm" onsubmit="handlePayrollSubmit(event)">
-        <div class="form-group">
-          <label for="payEmp">Employee</label>
-          <select id="payEmp" required></select>
         </div>
         <div class="form-row">
           <div class="form-group">
-            <label for="payMonth">Month/Year</label>
-            <input type="text" id="payMonth" placeholder="e.g. October 2026" required>
+            <label>Department</label>
+            <input type="text" id="usrDept" required placeholder="Engineering">
           </div>
           <div class="form-group">
-            <label for="payAmount">Net Salary ($)</label>
-            <input type="number" id="payAmount" placeholder="5000" required>
+            <label>Designation</label>
+            <input type="text" id="usrDesignation" required placeholder="Developer">
           </div>
         </div>
         <div class="modal-actions">
-          <button type="button" class="btn-cancel" onclick="closeModal('payrollModal')">Cancel</button>
-          <button type="submit" class="btn-primary">Issue Payslip</button>
+          <button type="button" class="btn-cancel" onclick="closeModal('userModal')">Cancel</button>
+          <button type="submit" class="btn-primary">Save User</button>
         </div>
       </form>
     </div>
