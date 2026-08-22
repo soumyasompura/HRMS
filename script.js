@@ -1,461 +1,243 @@
-// Database Schema Compliant Default Store
-const initialData = {
-  currentUserId: 1,
-  currentEmployeeId: "EMP-001",
-  role: "employee",
-  isLoggedIn: false,
-  
-  users: [
-    { id: 1, employee_id: "EMP-001", name: "John Doe", email: "john@company.com", role: "employee", status: "active", department: "Engineering", designation: "Frontend Engineer" },
-    { id: 2, employee_id: "EMP-002", name: "Sarah Jenkins", email: "sarah@company.com", role: "admin", status: "active", department: "Human Resources", designation: "HR Manager" }
-  ],
-  
-  attendance: [
-    { id: 1, employee_id: "EMP-001", date: "2026-08-22", check_in: "09:00:00", check_out: "17:00:00", total_hours: 8, status: "Present" }
-  ],
+document.addEventListener('DOMContentLoaded', function() {
+  // Application State
+  let isSignUp = false;
+  let selectedRole = 'Employee';
+  let isClockedIn = false;
+  let taskCount = 1;
 
-  leave_balances: [
-    { id: 1, employee_id: "EMP-001", year: 2026, paid_leave_total: 18, paid_leave_used: 4, sick_leave_total: 10, sick_leave_used: 1, unpaid_leave_used: 0 }
-  ],
+  // UI References
+  const authView = document.getElementById('authView');
+  const appView = document.getElementById('appView');
+  const authForm = document.getElementById('authForm');
+  const btnRoleEmp = document.getElementById('btnRoleEmp');
+  const btnRoleAdmin = document.getElementById('btnRoleAdmin');
+  const toggleLink = document.getElementById('toggleLink');
+  const nameGroup = document.getElementById('nameGroup');
+  const fullNameInput = document.getElementById('fullName');
+  const emailInput = document.getElementById('email');
+  const authSubtitle = document.getElementById('authSubtitle');
+  const authSubmitBtn = document.getElementById('authSubmitBtn');
+  const toggleText = document.getElementById('toggleText');
+  const displayUserName = document.getElementById('displayUserName');
+  const displayUserRole = document.getElementById('displayUserRole');
+  const userAvatar = document.getElementById('userAvatar');
+  const userEmpIdElements = document.querySelectorAll('.userEmpId');
+  const btnLogout = document.getElementById('btnLogout');
+  const themeToggleBtn = document.getElementById('themeToggleBtn');
+  const currentTabTitle = document.getElementById('currentTabTitle');
 
-  leave_requests: [
-    { id: 1, employee_id: "EMP-001", leave_type: "paid", start_date: "2026-09-01", end_date: "2026-09-03", reason: "Personal Vacation", status: "Pending", hr_comment: "" }
-  ],
+  // Navigation Panels
+  const navItems = document.querySelectorAll('.nav-item');
+  const pagePanels = document.querySelectorAll('.page-panel');
 
-  payroll: [
-    { id: 1, employee_id: "EMP-001", month: "August", year: 2026, basic_salary: 4500, allowances: 500, deductions: 200, net_salary: 4800, payment_status: "Paid" }
-  ],
+  // Interactive Features
+  const clockStatusText = document.getElementById('clockStatusText');
+  const quickClockBtn = document.getElementById('quickClockBtn');
+  const clockToggleBtn = document.getElementById('clockToggleBtn');
+  const attendanceTableBody = document.getElementById('attendanceTableBody');
+  const taskForm = document.getElementById('taskForm');
+  const taskInput = document.getElementById('taskInput');
+  const taskList = document.getElementById('taskList');
+  const taskCountText = document.getElementById('taskCountText');
+  const openLeaveModalBtn = document.getElementById('openLeaveModalBtn');
+  const closeLeaveModalBtn = document.getElementById('closeLeaveModalBtn');
+  const leaveModal = document.getElementById('leaveModal');
+  const leaveForm = document.getElementById('leaveForm');
+  const leaveTableBody = document.getElementById('leaveTableBody');
+  const leaveSearchInput = document.getElementById('leaveSearchInput');
+  const announcementForm = document.getElementById('announcementForm');
+  const announcementsContainer = document.getElementById('announcementsContainer');
 
-  work_updates: [
-    { id: 1, employee_id: "EMP-001", project: "HRMS Portal", work_title: "Setup DB Frontend Schema", description: "Aligned local tables with backend structure.", work_date: "2026-08-22", status: "Completed", progress_percentage: 100, remarks: "Ready for review" }
-  ],
-
-  announcements: [
-    { id: 1, created_by: 2, title: "Quarterly All-Hands Meeting", message: "All-hands scheduled for next Monday at 10 AM EST.", created_at: "2026-08-20" }
-  ],
-
-  notifications: [
-    { id: 1, user_id: 1, title: "Welcome!", message: "Your HRMS profile is fully activated.", type: "system", is_read: false, created_at: "2026-08-22" }
-  ],
-
-  audit_logs: [
-    { id: 1, user_id: 1, action: "LOGIN", target_type: "users", target_id: 1, description: "User logged into session", created_at: "2026-08-22 09:00:00" }
-  ]
-};
-
-// Auth State Variables
-let currentAuthRole = 'employee';
-let isSignUpMode = false;
-
-function getStore() {
-  const data = localStorage.getItem('HRMS_DB');
-  return data ? JSON.parse(data) : initialData;
-}
-
-function saveStore(data) {
-  localStorage.setItem('HRMS_DB', JSON.stringify(data));
-  renderAll();
-}
-
-function logAudit(action, target_type, target_id, description) {
-  const store = getStore();
-  store.audit_logs.unshift({
-    id: Date.now(),
-    user_id: store.currentUserId,
-    action,
-    target_type,
-    target_id,
-    description,
-    created_at: new Date().toISOString().replace('T', ' ').substring(0, 19)
+  // Theme Toggle
+  themeToggleBtn.addEventListener('click', function() {
+    document.body.classList.toggle('dark-mode');
+    themeToggleBtn.innerText = document.body.classList.contains('dark-mode') ? '☀️ Light Mode' : '🌙 Dark Mode';
   });
-  localStorage.setItem('HRMS_DB', JSON.stringify(store));
-}
 
-// Authentication Handlers
-function selectAuthRole(role) {
-  currentAuthRole = role;
-  document.getElementById('roleBtnEmp').classList.toggle('active', role === 'employee');
-  document.getElementById('roleBtnAdmin').classList.toggle('active', role === 'admin');
-}
+  // Sidebar Page Switching
+  navItems.forEach(item => {
+    item.addEventListener('click', function() {
+      const pageId = this.getAttribute('data-page');
+      navItems.forEach(nav => nav.classList.remove('active'));
+      this.classList.add('active');
 
-function toggleAuthMode(e) {
-  e.preventDefault();
-  isSignUpMode = !isSignUpMode;
-  
-  document.getElementById('authTitle').innerText = isSignUpMode ? 'Create Account' : 'Welcome Back';
-  document.getElementById('authSubmitBtn').innerText = isSignUpMode ? 'Sign Up' : 'Sign In';
-  document.getElementById('nameGroup').style.display = isSignUpMode ? 'flex' : 'none';
-  document.getElementById('authToggleText').innerText = isSignUpMode ? 'Already have an account?' : "Don't have an account?";
-  document.getElementById('authToggleLink').innerText = isSignUpMode ? 'Sign In' : 'Sign Up';
-}
+      pagePanels.forEach(panel => {
+        panel.classList.toggle('active', panel.id === `page-${pageId}`);
+      });
 
-function handleAuthSubmit(e) {
-  e.preventDefault();
-  const store = getStore();
-  const identifier = document.getElementById('authIdentifier').value;
-  const password = document.getElementById('authPassword').value;
-  const name = document.getElementById('authName').value;
+      currentTabTitle.innerText = this.innerText.trim();
+    });
+  });
 
-  if (isSignUpMode) {
-    const newEmpId = `EMP-00${store.users.length + 1}`;
-    const newUser = {
-      id: Date.now(),
-      employee_id: newEmpId,
-      name: name || identifier.split('@')[0],
-      email: identifier,
-      role: currentAuthRole,
-      status: "active",
-      department: "General",
-      designation: currentAuthRole === 'admin' ? 'HR Executive' : 'Team Member'
-    };
-    
-    store.users.push(newUser);
-    store.currentUserId = newUser.id;
-    store.currentEmployeeId = newUser.employee_id;
-    store.role = currentAuthRole;
-    store.isLoggedIn = true;
-    
-    logAudit("SIGN_UP", "users", newUser.id, `Signed up as ${currentAuthRole}`);
-    saveStore(store);
-  } else {
-    const user = store.users.find(u => (u.email === identifier || u.employee_id === identifier) && u.role === currentAuthRole);
-    
-    if (user) {
-      store.currentUserId = user.id;
-      store.currentEmployeeId = user.employee_id;
-      store.role = user.role;
-      store.isLoggedIn = true;
-      logAudit("LOGIN", "users", user.id, `User logged in as ${user.role}`);
-      saveStore(store);
+  // Role Selection
+  btnRoleEmp.addEventListener('click', () => setRole('Employee'));
+  btnRoleAdmin.addEventListener('click', () => setRole('HR / Admin'));
+
+  function setRole(role) {
+    selectedRole = role;
+    btnRoleEmp.classList.toggle('active', role === 'Employee');
+    btnRoleAdmin.classList.toggle('active', role === 'HR / Admin');
+  }
+
+  // Auth Toggle Mode
+  toggleLink.addEventListener('click', function() {
+    isSignUp = !isSignUp;
+    authSubtitle.innerText = isSignUp ? 'Fill in your details to register' : 'Select your role and enter credentials to continue';
+    authSubmitBtn.innerText = isSignUp ? 'Sign Up' : 'Sign In';
+    nameGroup.style.display = isSignUp ? 'block' : 'none';
+    fullNameInput.required = isSignUp;
+    toggleText.innerText = isSignUp ? 'Already have an account?' : "Don't have an account?";
+    toggleLink.innerText = isSignUp ? 'Sign In' : 'Sign Up';
+  });
+
+  // Login Handler & Authority Display Toggle
+  authForm.addEventListener('submit', function(e) {
+    e.preventDefault();
+    const email = emailInput.value.trim();
+    const name = isSignUp ? fullNameInput.value.trim() : email.split('@')[0];
+    const empId = selectedRole === 'HR / Admin' ? 'ADM-001' : `EMP-${Math.floor(100 + Math.random() * 900)}`;
+
+    displayUserName.innerText = name;
+    displayUserRole.innerText = selectedRole;
+    userAvatar.innerText = name.charAt(0).toUpperCase();
+    userEmpIdElements.forEach(el => el.innerText = empId);
+
+    // Apply HR Authority Access Levels across DOM
+    const adminElements = document.querySelectorAll('.admin-only');
+    adminElements.forEach(el => {
+      el.style.display = (selectedRole === 'HR / Admin') ? '' : 'none';
+    });
+
+    authView.style.display = 'none';
+    appView.style.display = 'flex';
+  });
+
+  btnLogout.addEventListener('click', function() {
+    authView.style.display = 'flex';
+    appView.style.display = 'none';
+  });
+
+  // Time Clock Logic
+  function toggleClock() {
+    isClockedIn = !isClockedIn;
+    const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const today = new Date().toISOString().split('T')[0];
+
+    if (isClockedIn) {
+      clockStatusText.innerText = `Clocked In (${now})`;
+      clockStatusText.className = 'stat-value badge-success';
+      quickClockBtn.innerText = 'Clock Out';
+      clockToggleBtn.innerText = 'Clock Out';
+
+      const row = document.createElement('tr');
+      row.id = 'activeClockRow';
+      row.innerHTML = `<td>${today}</td><td>${now}</td><td>--</td><td>In Progress</td><td><span class="badge-success">Active</span></td>`;
+      attendanceTableBody.prepend(row);
     } else {
-      store.currentUserId = currentAuthRole === 'admin' ? 2 : 1;
-      store.currentEmployeeId = currentAuthRole === 'admin' ? 'EMP-002' : 'EMP-001';
-      store.role = currentAuthRole;
-      store.isLoggedIn = true;
-      saveStore(store);
+      clockStatusText.innerText = 'Clocked Out';
+      clockStatusText.className = 'stat-value text-warning';
+      quickClockBtn.innerText = 'Clock In Now';
+      clockToggleBtn.innerText = 'Clock In';
+
+      const activeRow = document.getElementById('activeClockRow');
+      if (activeRow) {
+        activeRow.cells[2].innerText = now;
+        activeRow.cells[3].innerText = '8.0 hrs';
+        activeRow.cells[4].innerHTML = '<span class="badge-success">Completed</span>';
+        activeRow.removeAttribute('id');
+      }
     }
   }
 
-  document.getElementById('authOverlay').style.display = 'none';
-  document.getElementById('roleSwitch').value = store.role;
-  toggleRole(store.role);
-}
+  quickClockBtn.addEventListener('click', toggleClock);
+  clockToggleBtn.addEventListener('click', toggleClock);
 
-function handleLogout() {
-  const store = getStore();
-  store.isLoggedIn = false;
-  localStorage.setItem('HRMS_DB', JSON.stringify(store));
-  document.getElementById('authOverlay').style.display = 'flex';
-}
+  // Work Updates
+  taskForm.addEventListener('submit', function(e) {
+    e.preventDefault();
+    const taskText = taskInput.value.trim();
+    if (!taskText) return;
 
-function checkAuthSession() {
-  const store = getStore();
-  if (store.isLoggedIn) {
-    document.getElementById('authOverlay').style.display = 'none';
-  } else {
-    document.getElementById('authOverlay').style.display = 'flex';
-  }
-}
+    const li = document.createElement('li');
+    li.innerHTML = `<span>${taskText}</span><span class="badge-pending">In Progress</span>`;
+    taskList.prepend(li);
 
-function toggleRole(role) {
-  const store = getStore();
-  store.role = role;
-  
-  const currentUser = store.users.find(u => u.role === role);
-  if (currentUser) {
-    store.currentUserId = currentUser.id;
-    store.currentEmployeeId = currentUser.employee_id;
-  } else {
-    store.currentUserId = role === 'admin' ? 2 : 1;
-    store.currentEmployeeId = role === 'admin' ? "EMP-002" : "EMP-001";
-  }
-  
-  localStorage.setItem('HRMS_DB', JSON.stringify(store));
-
-  const activeUser = store.users.find(u => u.id === store.currentUserId);
-  const displayName = activeUser ? activeUser.name : (role === 'admin' ? 'Sarah Jenkins' : 'John Doe');
-  document.getElementById('userLabel').innerText = `${displayName} (${role})`;
-  
-  document.querySelectorAll('.hr-only').forEach(el => el.style.display = role === 'admin' ? '' : 'none');
-
-  const usersView = document.getElementById('view-users');
-  const auditView = document.getElementById('view-audit_logs');
-  if (role === 'employee' && ((usersView && usersView.style.display !== 'none') || (auditView && auditView.style.display !== 'none'))) {
-    navigate('dashboard');
-  }
-
-  logAudit("SWITCH_ROLE", "users", store.currentUserId, `Switched preview role to ${role}`);
-  renderAll();
-}
-
-function navigate(viewId) {
-  document.querySelectorAll('.view-section').forEach(el => el.style.display = 'none');
-  document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
-  
-  const target = document.getElementById(`view-${viewId}`);
-  if (target) target.style.display = 'block';
-
-  const clickedBtn = Array.from(document.querySelectorAll('.nav-btn')).find(b => b.getAttribute('onclick')?.includes(viewId));
-  if (clickedBtn) clickedBtn.classList.add('active');
-}
-
-function renderAll() {
-  const store = getStore();
-  const isHR = store.role === 'admin';
-  const empId = store.currentEmployeeId;
-
-  // Render Stats
-  const today = new Date().toISOString().split('T')[0];
-  const todayAtt = store.attendance.find(a => a.employee_id === empId && a.date === today);
-  document.getElementById('statAttendance').innerText = todayAtt ? `${todayAtt.status} (${todayAtt.check_in})` : 'Not Checked In';
-  
-  const leaveBal = store.leave_balances.find(l => l.employee_id === empId);
-  const remainingPaid = leaveBal ? (leaveBal.paid_leave_total - leaveBal.paid_leave_used) : 0;
-  document.getElementById('statLeave').innerText = `${remainingPaid} Days Remaining`;
-
-  const activeWork = store.work_updates.filter(w => (isHR || w.employee_id === empId) && w.status !== 'Completed').length;
-  document.getElementById('statWork').innerText = `${activeWork} In Progress`;
-  document.getElementById('statUsers').innerText = `${store.users.length} Active`;
-
-  // CheckIn/CheckOut buttons toggle
-  const checkInBtn = document.getElementById('btnCheckIn');
-  const checkOutBtn = document.getElementById('btnCheckOut');
-  if (todayAtt && !todayAtt.check_out) {
-    checkInBtn.style.display = 'none';
-    checkOutBtn.style.display = 'inline-block';
-  } else {
-    checkInBtn.style.display = 'inline-block';
-    checkOutBtn.style.display = 'none';
-  }
-
-  // Attendance Table
-  document.getElementById('attendanceTableBody').innerHTML = store.attendance
-    .filter(a => isHR || a.employee_id === empId)
-    .map(a => `<tr><td>${a.employee_id}</td><td>${a.date}</td><td>${a.check_in}</td><td>${a.check_out || '--'}</td><td>${a.total_hours || '--'} hrs</td><td><span class="badge badge-approved">${a.status}</span></td></tr>`)
-    .join('');
-
-  // Work Updates Table
-  document.getElementById('workTableBody').innerHTML = store.work_updates
-    .filter(w => isHR || w.employee_id === empId)
-    .map(w => `<tr><td>${w.project}</td><td>${w.work_title}</td><td>${w.work_date}</td><td>${w.progress_percentage}%</td><td><span class="badge ${w.status==='Completed'?'badge-approved':'badge-pending'}">${w.status}</span></td><td>${w.remarks || '-'}</td></tr>`)
-    .join('');
-
-  // Leave Requests Table
-  document.getElementById('leaveTableBody').innerHTML = store.leave_requests
-    .filter(l => isHR || l.employee_id === empId)
-    .map(l => `
-      <tr>
-        <td>${l.employee_id}</td>
-        <td>${l.leave_type}</td>
-        <td>${l.start_date}</td>
-        <td>${l.end_date}</td>
-        <td>${l.reason}</td>
-        <td><span class="badge ${l.status==='Approved'?'badge-approved':l.status==='Rejected'?'badge-rejected':'badge-pending'}">${l.status}</span></td>
-        <td>${l.hr_comment || '-'}</td>
-        ${isHR ? `<td>
-          <button class="btn-success" onclick="updateLeaveStatus(${l.id}, 'Approved')">Approve</button>
-          <button class="btn-danger" onclick="updateLeaveStatus(${l.id}, 'Rejected')">Reject</button>
-        </td>` : ''}
-      </tr>
-    `).join('');
-
-  // Payroll Table
-  document.getElementById('payrollTableBody').innerHTML = store.payroll
-    .filter(p => isHR || p.employee_id === empId)
-    .map(p => `<tr><td>${p.employee_id}</td><td>${p.month} ${p.year}</td><td>$${p.basic_salary}</td><td>$${p.allowances}</td><td>$${p.deductions}</td><td><strong>$${p.net_salary}</strong></td><td><span class="badge badge-approved">${p.payment_status}</span></td></tr>`)
-    .join('');
-
-  // Announcements
-  document.getElementById('announcementContainer').innerHTML = store.announcements.map(a => `
-    <div class="anc-card">
-      <h4>${a.title}</h4>
-      <small style="color: #64748b">${a.created_at}</small>
-      <p style="margin-top: 6px; font-size: 0.9rem">${a.message}</p>
-    </div>
-  `).join('');
-
-  // Users Table
-  document.getElementById('usersTableBody').innerHTML = store.users.map(u => `
-    <tr><td>${u.employee_id}</td><td>${u.name}</td><td>${u.email}</td><td>${u.role}</td><td>${u.department}</td><td>${u.designation}</td><td><span class="badge badge-approved">${u.status}</span></td></tr>
-  `).join('');
-
-  // Audit Logs Table
-  document.getElementById('auditTableBody').innerHTML = store.audit_logs.map(log => `
-    <tr><td>${log.user_id}</td><td><strong>${log.action}</strong></td><td>${log.target_type}</td><td>${log.target_id}</td><td>${log.description}</td><td>${log.created_at}</td></tr>
-  `).join('');
-
-  // Notifications Badge & Dropdown
-  const myNotifs = store.notifications.filter(n => n.user_id === store.currentUserId);
-  const unread = myNotifs.filter(n => !n.is_read).length;
-  document.getElementById('notifCount').innerText = unread;
-  document.getElementById('notifContainer').innerHTML = myNotifs.length ? myNotifs.map(n => `
-    <div class="notif-item ${n.is_read ? '' : 'unread'}">
-      <strong>${n.title}</strong>
-      <p style="font-size:0.8rem; color:#475569">${n.message}</p>
-    </div>
-  `).join('') : '<p style="padding:12px; font-size:0.85rem;">No notifications</p>';
-}
-
-// Attendance Logic
-function handleCheckIn() {
-  const store = getStore();
-  const today = new Date().toISOString().split('T')[0];
-  const time = new Date().toTimeString().split(' ')[0];
-  
-  store.attendance.unshift({
-    id: Date.now(),
-    employee_id: store.currentEmployeeId,
-    date: today,
-    check_in: time,
-    check_out: null,
-    total_hours: 0,
-    status: "Present"
+    taskCount++;
+    taskCountText.innerText = `${taskCount} Active`;
+    taskInput.value = '';
   });
-  logAudit("CHECK_IN", "attendance", store.currentEmployeeId, `Checked in at ${time}`);
-  saveStore(store);
-}
 
-function handleCheckOut() {
-  const store = getStore();
-  const today = new Date().toISOString().split('T')[0];
-  const time = new Date().toTimeString().split(' ')[0];
-  
-  const record = store.attendance.find(a => a.employee_id === store.currentEmployeeId && a.date === today);
-  if (record) {
-    record.check_out = time;
-    record.total_hours = 8;
-    logAudit("CHECK_OUT", "attendance", store.currentEmployeeId, `Checked out at ${time}`);
-    saveStore(store);
-  }
-}
+  // Leave Requests Modal & Submissions
+  openLeaveModalBtn.addEventListener('click', () => leaveModal.classList.add('active'));
+  closeLeaveModalBtn.addEventListener('click', () => leaveModal.classList.remove('active'));
 
-// Submissions
-function handleWorkSubmit(e) {
-  e.preventDefault();
-  const store = getStore();
-  const newWork = {
-    id: Date.now(),
-    employee_id: store.currentEmployeeId,
-    project: document.getElementById('workProject').value,
-    work_title: document.getElementById('workTitle').value,
-    description: document.getElementById('workDescription').value,
-    work_date: new Date().toISOString().split('T')[0],
-    status: document.getElementById('workStatus').value,
-    progress_percentage: Number(document.getElementById('workProgress').value),
-    remarks: "Logged via Portal"
-  };
-  store.work_updates.unshift(newWork);
-  logAudit("CREATE", "work_updates", newWork.id, `Created work update for ${newWork.project}`);
-  closeModal('workModal');
-  saveStore(store);
-}
+  leaveForm.addEventListener('submit', function(e) {
+    e.preventDefault();
+    const type = document.getElementById('leaveType').value;
+    const start = document.getElementById('startDate').value;
+    const end = document.getElementById('endDate').value;
+    const reason = document.getElementById('leaveReason').value;
+    const empId = userEmpIdElements[0]?.innerText || 'EMP-001';
 
-function handleLeaveSubmit(e) {
-  e.preventDefault();
-  const store = getStore();
-  const newLeave = {
-    id: Date.now(),
-    employee_id: store.currentEmployeeId,
-    leave_type: document.getElementById('leaveType').value,
-    start_date: document.getElementById('leaveStartDate').value,
-    end_date: document.getElementById('leaveEndDate').value,
-    reason: document.getElementById('leaveReason').value,
-    status: "Pending",
-    hr_comment: ""
-  };
-  store.leave_requests.unshift(newLeave);
-  logAudit("CREATE", "leave_requests", newLeave.id, `Applied for ${newLeave.leave_type} leave`);
-  closeModal('leaveModal');
-  saveStore(store);
-}
+    const row = document.createElement('tr');
+    const isAdmin = selectedRole === 'HR / Admin';
+    row.innerHTML = `
+      <td>${empId}</td>
+      <td>${type}</td>
+      <td>${start}</td>
+      <td>${end}</td>
+      <td>${reason}</td>
+      <td class="status-cell"><span class="badge-pending">Pending</span></td>
+      <td class="admin-only action-cell" style="display: ${isAdmin ? '' : 'none'};">
+        <button class="btn-action approve" onclick="approveLeave(this)">Approve</button>
+        <button class="btn-action reject" onclick="rejectLeave(this)">Reject</button>
+      </td>
+    `;
+    leaveTableBody.prepend(row);
 
-function updateLeaveStatus(id, status) {
-  const store = getStore();
-  const leave = store.leave_requests.find(l => l.id === id);
-  if (leave) {
-    leave.status = status;
-    leave.hr_comment = `Reviewed by HR`;
-    logAudit("UPDATE", "leave_requests", id, `Updated leave status to ${status}`);
-    saveStore(store);
-  }
-}
+    leaveForm.reset();
+    leaveModal.classList.remove('active');
+  });
 
-function handlePayrollSubmit(e) {
-  e.preventDefault();
-  const store = getStore();
-  const basic = Number(document.getElementById('payBasic').value);
-  const allowances = Number(document.getElementById('payAllowances').value);
-  const deductions = Number(document.getElementById('payDeductions').value);
+  // HR Post Announcements Authority
+  announcementForm.addEventListener('submit', function(e) {
+    e.preventDefault();
+    const title = document.getElementById('announcementTitle').value.trim();
+    const body = document.getElementById('announcementBody').value.trim();
+    const today = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
-  const newPay = {
-    id: Date.now(),
-    employee_id: document.getElementById('payEmpId').value,
-    month: document.getElementById('payMonth').value,
-    year: Number(document.getElementById('payYear').value),
-    basic_salary: basic,
-    allowances: allowances,
-    deductions: deductions,
-    net_salary: basic + allowances - deductions,
-    payment_status: "Paid"
-  };
-  store.payroll.unshift(newPay);
-  logAudit("CREATE", "payroll", newPay.id, `Issued payslip for ${newPay.employee_id}`);
-  closeModal('payrollModal');
-  saveStore(store);
-}
+    const item = document.createElement('div');
+    item.className = 'announcement-item mt-2';
+    item.innerHTML = `
+      <div class="announcement-header">
+        <h4>📢 ${title}</h4>
+        <span class="text-muted">Posted on ${today}</span>
+      </div>
+      <p class="announcement-body">${body}</p>
+    `;
+    announcementsContainer.prepend(item);
+    announcementForm.reset();
+  });
 
-function handleAnnouncementSubmit(e) {
-  e.preventDefault();
-  const store = getStore();
-  const newAnc = {
-    id: Date.now(),
-    created_by: store.currentUserId,
-    title: document.getElementById('ancTitle').value,
-    message: document.getElementById('ancMessage').value,
-    created_at: new Date().toISOString().split('T')[0]
-  };
-  store.announcements.unshift(newAnc);
-  logAudit("CREATE", "announcements", newAnc.id, `Created notice: ${newAnc.title}`);
-  closeModal('announcementModal');
-  saveStore(store);
-}
-
-function handleUserSubmit(e) {
-  e.preventDefault();
-  const store = getStore();
-  const newUser = {
-    id: Date.now(),
-    employee_id: document.getElementById('usrEmpId').value,
-    name: document.getElementById('usrName').value,
-    email: document.getElementById('usrEmail').value,
-    role: document.getElementById('usrRole').value,
-    status: "active",
-    department: document.getElementById('usrDept').value,
-    designation: document.getElementById('usrDesignation').value
-  };
-  store.users.push(newUser);
-  logAudit("CREATE", "users", newUser.id, `Created user ${newUser.employee_id}`);
-  closeModal('userModal');
-  saveStore(store);
-}
-
-function toggleNotifDropdown() {
-  const el = document.getElementById('notifDropdown');
-  el.style.display = el.style.display === 'none' ? 'block' : 'none';
-}
-
-function openModal(id) { document.getElementById(id).style.display = 'flex'; }
-function closeModal(id) { 
-  document.getElementById(id).style.display = 'none';
-  const form = document.querySelector(`#${id} form`);
-  if (form) form.reset();
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-  if (!localStorage.getItem('HRMS_DB')) {
-    saveStore(initialData);
-  }
-  checkAuthSession();
-  document.getElementById('roleSwitch').value = getStore().role;
-  toggleRole(getStore().role);
+  // Table Search Filter
+  leaveSearchInput.addEventListener('input', function() {
+    const filter = this.value.toLowerCase();
+    const rows = leaveTableBody.querySelectorAll('tr');
+    rows.forEach(row => {
+      row.style.display = row.innerText.toLowerCase().includes(filter) ? '' : 'none';
+    });
+  });
 });
+
+// Admin Global Leave Actions
+function approveLeave(btn) {
+  const row = btn.closest('tr');
+  row.querySelector('.status-cell').innerHTML = '<span class="badge-success">Approved</span>';
+  row.querySelector('.action-cell').innerHTML = '<span class="text-muted">Done</span>';
+}
+
+function rejectLeave(btn) {
+  const row = btn.closest('tr');
+  row.querySelector('.status-cell').innerHTML = '<span class="badge-rejected">Rejected</span>';
+  row.querySelector('.action-cell').innerHTML = '<span class="text-muted">Done</span>';
+}
