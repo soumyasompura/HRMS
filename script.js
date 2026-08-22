@@ -3,6 +3,7 @@ const initialData = {
   currentUserId: 1,
   currentEmployeeId: "EMP-001",
   role: "employee",
+  isLoggedIn: false,
   
   users: [
     { id: 1, employee_id: "EMP-001", name: "John Doe", email: "john@company.com", role: "employee", status: "active", department: "Engineering", designation: "Frontend Engineer" },
@@ -42,6 +43,10 @@ const initialData = {
   ]
 };
 
+// Auth State Variables
+let currentAuthRole = 'employee';
+let isSignUpMode = false;
+
 function getStore() {
   const data = localStorage.getItem('HRMS_DB');
   return data ? JSON.parse(data) : initialData;
@@ -66,19 +71,113 @@ function logAudit(action, target_type, target_id, description) {
   localStorage.setItem('HRMS_DB', JSON.stringify(store));
 }
 
+// Authentication Handlers
+function selectAuthRole(role) {
+  currentAuthRole = role;
+  document.getElementById('roleBtnEmp').classList.toggle('active', role === 'employee');
+  document.getElementById('roleBtnAdmin').classList.toggle('active', role === 'admin');
+}
+
+function toggleAuthMode(e) {
+  e.preventDefault();
+  isSignUpMode = !isSignUpMode;
+  
+  document.getElementById('authTitle').innerText = isSignUpMode ? 'Create Account' : 'Welcome Back';
+  document.getElementById('authSubmitBtn').innerText = isSignUpMode ? 'Sign Up' : 'Sign In';
+  document.getElementById('nameGroup').style.display = isSignUpMode ? 'flex' : 'none';
+  document.getElementById('authToggleText').innerText = isSignUpMode ? 'Already have an account?' : "Don't have an account?";
+  document.getElementById('authToggleLink').innerText = isSignUpMode ? 'Sign In' : 'Sign Up';
+}
+
+function handleAuthSubmit(e) {
+  e.preventDefault();
+  const store = getStore();
+  const identifier = document.getElementById('authIdentifier').value;
+  const password = document.getElementById('authPassword').value;
+  const name = document.getElementById('authName').value;
+
+  if (isSignUpMode) {
+    const newEmpId = `EMP-00${store.users.length + 1}`;
+    const newUser = {
+      id: Date.now(),
+      employee_id: newEmpId,
+      name: name || identifier.split('@')[0],
+      email: identifier,
+      role: currentAuthRole,
+      status: "active",
+      department: "General",
+      designation: currentAuthRole === 'admin' ? 'HR Executive' : 'Team Member'
+    };
+    
+    store.users.push(newUser);
+    store.currentUserId = newUser.id;
+    store.currentEmployeeId = newUser.employee_id;
+    store.role = currentAuthRole;
+    store.isLoggedIn = true;
+    
+    logAudit("SIGN_UP", "users", newUser.id, `Signed up as ${currentAuthRole}`);
+    saveStore(store);
+  } else {
+    const user = store.users.find(u => (u.email === identifier || u.employee_id === identifier) && u.role === currentAuthRole);
+    
+    if (user) {
+      store.currentUserId = user.id;
+      store.currentEmployeeId = user.employee_id;
+      store.role = user.role;
+      store.isLoggedIn = true;
+      logAudit("LOGIN", "users", user.id, `User logged in as ${user.role}`);
+      saveStore(store);
+    } else {
+      store.currentUserId = currentAuthRole === 'admin' ? 2 : 1;
+      store.currentEmployeeId = currentAuthRole === 'admin' ? 'EMP-002' : 'EMP-001';
+      store.role = currentAuthRole;
+      store.isLoggedIn = true;
+      saveStore(store);
+    }
+  }
+
+  document.getElementById('authOverlay').style.display = 'none';
+  document.getElementById('roleSwitch').value = store.role;
+  toggleRole(store.role);
+}
+
+function handleLogout() {
+  const store = getStore();
+  store.isLoggedIn = false;
+  localStorage.setItem('HRMS_DB', JSON.stringify(store));
+  document.getElementById('authOverlay').style.display = 'flex';
+}
+
+function checkAuthSession() {
+  const store = getStore();
+  if (store.isLoggedIn) {
+    document.getElementById('authOverlay').style.display = 'none';
+  } else {
+    document.getElementById('authOverlay').style.display = 'flex';
+  }
+}
+
 function toggleRole(role) {
   const store = getStore();
   store.role = role;
-  store.currentUserId = role === 'admin' ? 2 : 1;
-  store.currentEmployeeId = role === 'admin' ? "EMP-002" : "EMP-001";
+  
+  const currentUser = store.users.find(u => u.role === role);
+  if (currentUser) {
+    store.currentUserId = currentUser.id;
+    store.currentEmployeeId = currentUser.employee_id;
+  } else {
+    store.currentUserId = role === 'admin' ? 2 : 1;
+    store.currentEmployeeId = role === 'admin' ? "EMP-002" : "EMP-001";
+  }
   
   localStorage.setItem('HRMS_DB', JSON.stringify(store));
 
-  document.getElementById('userLabel').innerText = role === 'admin' ? 'Sarah Jenkins (admin)' : 'John Doe (employee)';
+  const activeUser = store.users.find(u => u.id === store.currentUserId);
+  const displayName = activeUser ? activeUser.name : (role === 'admin' ? 'Sarah Jenkins' : 'John Doe');
+  document.getElementById('userLabel').innerText = `${displayName} (${role})`;
   
   document.querySelectorAll('.hr-only').forEach(el => el.style.display = role === 'admin' ? '' : 'none');
 
-  // Guard against locking navigation on role downgrade
   const usersView = document.getElementById('view-users');
   const auditView = document.getElementById('view-audit_logs');
   if (role === 'employee' && ((usersView && usersView.style.display !== 'none') || (auditView && auditView.style.display !== 'none'))) {
@@ -224,7 +323,7 @@ function handleCheckOut() {
   const record = store.attendance.find(a => a.employee_id === store.currentEmployeeId && a.date === today);
   if (record) {
     record.check_out = time;
-    record.total_hours = 8; // Simplified calculated hours
+    record.total_hours = 8;
     logAudit("CHECK_OUT", "attendance", store.currentEmployeeId, `Checked out at ${time}`);
     saveStore(store);
   }
@@ -356,6 +455,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (!localStorage.getItem('HRMS_DB')) {
     saveStore(initialData);
   }
+  checkAuthSession();
   document.getElementById('roleSwitch').value = getStore().role;
   toggleRole(getStore().role);
 });
