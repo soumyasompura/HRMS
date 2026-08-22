@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WorkPortal Pro - HRMS</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- AUTHENTICATION SCREEN -->
+  <div id="authView" class="auth-container">
+    <div class="auth-card">
+      <div class="auth-brand">
+        <div class="logo-icon">⚡</div>
+        <h2>WorkPortal</h2>
+      </div>
+      <p id="authSubtitle" class="subtitle">Select your role and enter credentials to continue</p>
+      
+      <div class="role-toggle">
+        <button type="button" class="role-btn active" id="btnRoleEmp">Employee</button>
+        <button type="button" class="role-btn" id="btnRoleAdmin">HR / Admin</button>
+      </div>
+
+      <form id="authForm">
+        <div class="form-group">
+          <label for="email">Email Address</label>
+          <input type="email" id="email" placeholder="e.g. employee@company.com" required>
+        </div>
+
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input type="password" id="password" placeholder="••••••••" required>
+        </div>
+
+        <button type="submit" id="authSubmitBtn" class="btn-submit">Sign In</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- MAIN APP SCREEN -->
+  <div id="appView">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="logo-icon">⚡</div>
+        <h1>WorkPortal</h1>
+      </div>
+      <ul class="nav-list">
+        <li class="nav-item active" data-page="dashboard"><span class="nav-icon">📊</span> Dashboard</li>
+        <li class="nav-item" data-page="attendance"><span class="nav-icon">🕒</span> Attendance Log</li>
+        <li class="nav-item" data-page="leave"><span class="nav-icon">🏖️</span> Leave Requests</li>
+        <li class="nav-item" data-page="payroll"><span class="nav-icon">💵</span> Payroll</li>
+      </ul>
+      <div class="sidebar-footer">
+        <button id="themeToggleBtn" type="button" class="btn-secondary">🌙 Dark Mode</button>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <header class="top-header">
+        <div class="header-left">
+          <h2 id="currentTabTitle">Dashboard</h2>
+        </div>
+        
+        <div class="header-right">
+          <div class="user-badge">
+            <span class="avatar" id="userAvatar">U</span>
+            <div class="user-info-text">
+              <strong id="displayUserName">User</strong>
+              <span id="displayUserRole" class="role-tag">Employee</span>
+            </div>
+          </div>
+
+          <button type="button" class="btn-logout" id="btnLogout">Logout</button>
+        </div>
+      </header>
+
+      <section class="content-area">
+        
+        <!-- DASHBOARD PAGE -->
+        <div id="page-dashboard" class="page-panel active">
+          <div class="stats-grid">
+            <div class="stat-card">
+              <span class="stat-title">Check-in Status</span>
+              <strong id="clockStatusText" class="stat-value text-warning">Clocked Out</strong>
+              <button id="quickClockBtn" class="btn-primary btn-sm">Clock In Now</button>
+            </div>
+            <div class="stat-card">
+              <span class="stat-title">Employee ID</span>
+              <strong class="stat-value userEmpId">EMP-001</strong>
+              <span class="stat-sub">Assigned Profile ID</span>
+            </div>
+          </div>
+
+          <!-- HR ADMIN PANEL -->
+          <div id="adminOverviewCard" class="card mt-2 admin-only" style="display: none;">
+            <h3>⚡ Admin Management Controls</h3>
+            <p class="text-muted mt-1">Manage organization settings and oversee workforce activity.</p>
+          </div>
+        </div>
+
+        <!-- ATTENDANCE LOG PAGE -->
+        <div id="page-attendance" class="page-panel">
+          <div class="card">
+            <div class="card-header">
+              <h3>Time Clock & Attendance Logs</h3>
+              <button id="clockToggleBtn" class="btn-primary">Clock In</button>
+            </div>
+            <table>
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Clock In</th>
+                  <th>Clock Out</th>
+                  <th>Total Hours</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="attendanceTableBody">
+                <tr><td colspan="5" style="text-align:center;">Loading logs...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- LEAVE REQUESTS PAGE -->
+        <div id="page-leave" class="page-panel">
+          <div class="card">
+            <div class="card-header">
+              <h3>Leave Requests</h3>
+              <button class="btn-primary" id="openLeaveModalBtn" type="button">+ Apply Leave</button>
+            </div>
+            <div class="table-tools">
+              <input type="text" id="leaveSearchInput" placeholder="Filter requests..." class="search-input">
+            </div>
+            <table>
+              <thead>
+                <tr>
+                  <th>Emp ID</th>
+                  <th>Type</th>
+                  <th>Start Date</th>
+                  <th>End Date</th>
+                  <th>Reason</th>
+                  <th>Status</th>
+                  <th class="admin-only" style="display: none;">Action</th>
+                </tr>
+              </thead>
+              <tbody id="leaveTableBody">
+                <tr><td colspan="7" style="text-align:center;">Loading requests...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- PAYROLL PAGE -->
+        <div id="page-payroll" class="page-panel">
+          <div class="card">
+            <h3>Payroll & Earnings</h3>
+            <div class="payroll-card mt-2">
+              <div>
+                <h4>Salary Disbursal Records</h4>
+                <p class="text-muted mt-1">Check monthly disbursements managed via HR backend.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </section>
+    </main>
+  </div>
+
+  <!-- LEAVE MODAL -->
+  <div id="leaveModal" class="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Apply for Leave</h3>
+        <button class="close-btn" id="closeLeaveModalBtn">&times;</button>
+      </div>
+      <form id="leaveForm">
+        <div class="form-group">
+          <label for="leaveType">Leave Type</label>
+          <select id="leaveType">
+            <option value="Paid Leave">Paid Leave</option>
+            <option value="Sick Leave">Sick Leave</option>
+            <option value="Casual Leave">Casual Leave</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label for="startDate">Start Date</label>
+          <input type="date" id="startDate" required>
+        </div>
+        <div class="form-group">
+          <label for="endDate">End Date</label>
+          <input type="date" id="endDate" required>
+        </div>
+        <div class="form-group">
+          <label for="leaveReason">Reason</label>
+          <input type="text" id="leaveReason" placeholder="Reason for leave" required>
+        </div>
+        <button type="submit" class="btn-submit">Submit Request</button>
+      </form>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
