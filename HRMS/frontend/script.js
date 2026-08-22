@@ -11,7 +11,7 @@ document.addEventListener('DOMContentLoaded', function() {
   const authForm = document.getElementById('authForm');
   const btnRoleEmp = document.getElementById('btnRoleEmp');
   const btnRoleAdmin = document.getElementById('btnRoleAdmin');
-  const emailInput = document.getElementById('email');
+  const usernameInput = document.getElementById('username');
   const passwordInput = document.getElementById('password');
   const authSubmitBtn = document.getElementById('authSubmitBtn');
   const displayUserName = document.getElementById('displayUserName');
@@ -120,7 +120,7 @@ document.addEventListener('DOMContentLoaded', function() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          email: emailInput.value.trim(),
+          username: usernameInput.value.trim(),
           password: passwordInput.value
         })
       });
@@ -142,10 +142,10 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 
   function setupUserSession(user) {
-    displayUserName.innerText = user.name || user.email.split('@')[0];
+    displayUserName.innerText = user.name || user.username;
     const isAdminUser = user.role === 'admin' || user.role === 'HR / Admin';
     displayUserRole.innerText = isAdminUser ? 'HR / Admin' : 'Employee';
-    userAvatar.innerText = (user.name || user.email).charAt(0).toUpperCase();
+    userAvatar.innerText = (user.name || user.username || 'U').charAt(0).toUpperCase();
     userEmpIdElements.forEach(el => el.innerText = user.employee_id || user.id || 'EMP-001');
 
     // Toggle RBAC Elements
